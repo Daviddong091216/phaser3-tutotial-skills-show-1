@@ -22,7 +22,7 @@ class MyGame extends Phaser.Scene {
     }
 
     create() {
-
+        this.add.image(400, 300, 'sky');
     }
 
     update() {
