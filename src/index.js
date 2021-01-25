@@ -47,7 +47,7 @@ class MyGame extends Phaser.Scene {
 
         this.anims.create({
             key: 'turn',
-            frames: [ { key: 'dude', frame: 4 } ],
+            frames: [{ key: 'dude', frame: 4 }],
             frameRate: 20
         });
 
@@ -57,6 +57,9 @@ class MyGame extends Phaser.Scene {
             frameRate: 10,
             repeat: -1
         });
+        this.physics.add.collider(player, platforms);
+
+
     }
 
     update() {
