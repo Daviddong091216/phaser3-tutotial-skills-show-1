@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-// import logoImg from './assets/logo.png';
 import bombImg from './assets/bomb.png';
 import dudeImg from './assets/dude.png';
 import groundImg from './assets/platform.png';
@@ -12,32 +11,37 @@ class MyGame extends Phaser.Scene {
     }
 
     preload() {
-        // this.load.image('logo', logoImg);
-        this.load.image('bomb', starImg);
+        this.load.image('bomb', bombImg);
         this.load.image('ground', groundImg);
         this.load.image('sky', skyImg);
         this.load.image('star', starImg);
-        this.load.image('bomb', bombImg);
         this.load.spritesheet('dude', dudeImg, { frameWidth: 32, frameHeight: 48 });
     }
 
     create() {
-        // this.add.image(400, 300, 'star');
+        //  A simple background for our game
         this.add.image(400, 300, 'sky');
 
+        //  The platforms group contains the ground and the 2 ledges we can jump on
         platforms = this.physics.add.staticGroup();
 
+        //  Here we create the ground.
+        //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
         platforms.create(400, 568, 'ground').setScale(2).refreshBody();
 
+        //  Now let's create some ledges
         platforms.create(600, 400, 'ground');
         platforms.create(50, 250, 'ground');
         platforms.create(750, 220, 'ground');
 
+        // The player and its settings
         player = this.physics.add.sprite(100, 450, 'dude');
 
+        //  Player physics properties. Give the little guy a slight bounce.
         player.setBounce(0.2);
         player.setCollideWorldBounds(true);
 
+        //  Our player animations, turning, walking left and walking right.
         this.anims.create({
             key: 'left',
             frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 3 }),
@@ -58,8 +62,10 @@ class MyGame extends Phaser.Scene {
             repeat: -1
         });
 
+        //  Input Events
         cursors = this.input.keyboard.createCursorKeys();
 
+        //  Some stars to collect, 12 in total, evenly spaced 70 pixels apart along the x axis
         stars = this.physics.add.group({
             key: 'star',
             repeat: 11,
@@ -68,16 +74,25 @@ class MyGame extends Phaser.Scene {
 
         stars.children.iterate(function (child) {
 
+            //  Give each star a slightly different bounce
             child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
 
         });
 
+        bombs = this.physics.add.group();
+
+        //  The score
         scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
 
+        //  Collide the player, the stars and bombs with the platforms
         this.physics.add.collider(player, platforms);
         this.physics.add.collider(stars, platforms);
+        this.physics.add.collider(bombs, platforms);
 
+        //  Checks to see if the player overlaps with any of the stars, if he does call the collectStar function
         this.physics.add.overlap(player, stars, collectStar, null, this);
+        //  Checks to see if the player overlaps with any of the boms, if he does call the hitBomb function
+        this.physics.add.collider(player, bombs, hitBomb, null, this);
     }
 
     update() {
@@ -106,9 +121,33 @@ class MyGame extends Phaser.Scene {
 
 function collectStar(player, star) {
     star.disableBody(true, true);
+
+    //  Add and update the score
     score += 10;
     scoreText.setText('Score: ' + score);
+
+    if (stars.countActive(true) === 0) {
+        //  A new batch of stars to collect
+        stars.children.iterate(function (child) {
+            child.enableBody(true, child.x, 0, true, true);
+        });
+        //  The bombs fall from different side from the sprit
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+        var bomb = bombs.create(x, 16, 'bomb');
+        bomb.setBounce(1);
+        bomb.setCollideWorldBounds(true);
+        bomb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        bomb.allowGravity = false;
+    }
 }
+
+function hitBomb(player, bomb) {
+    this.physics.pause();
+    player.setTint(0xff0000);
+    player.anims.play('turn');
+    gameOver = true;
+}
+
 
 const config = {
     type: Phaser.AUTO,
@@ -126,9 +165,11 @@ const config = {
 
 var player;
 var stars;
+var bombs;
 var platforms;
 var cursors;
 var score = 0;
+var gameOver = false;
 var scoreText;
 
 const game = new Phaser.Game(config);
